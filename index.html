@@ -1,0 +1,1842 @@
+<html>
+<head>
+	<style>
+		.rotate270 {
+		/*  -webkit-transform:rotate(270deg);
+		  -moz-transform: rotate(270deg);
+		  -ms-transform: rotate(270deg);
+		  -o-transform: rotate(270deg);
+		  transform: rotate(270deg);*/
+			transform: translateY(16px);
+		}
+		.smallicon {
+			transform: translateX(5px);
+		}
+
+		.cell {
+			background-color: #e0efd4;
+			border: 2px solid;
+			border-color: #999999;
+			transform: translateX(8px);
+			height:25px;
+			width:25px;
+			text-indent: 100%;
+			white-space: nowrap;
+			overflow: hidden;
+		}
+
+		.cell:hover {
+			background-color: #444444;
+		}
+
+		.cell:active {
+			background-color: #ac151b;
+		}
+
+		.cell:mousedown {
+			background-color: #00ff00;
+		}
+
+		.table_1 {
+			border-spacing: 0px;
+			border-padding: 0px;
+		}
+	</style>
+	<!-- <link rel="stylesheet" href="https://pokemondb.net/static/css/pokemondb-e3443e2d88.css">
+	<link rel="stylesheet" href="https://pokemondb.net/static/css/type-chart-76998cbd3d.css"> -->
+	<script src="./src/jquery-3.5.0.js"></script>
+	<script>
+		var Game = {};
+		var all = [];
+		var allweak = [];
+		var remainings = [];
+
+		var Data = {};
+		
+		var mon = [];
+		var pre = [];
+
+
+
+			var satu = [
+				"5/56"
+				,"0/0b"
+				,"f/f6"
+				,"3/3c"
+				,"b/bb"
+				,"b/be"
+				,"a/ab"
+				,"0/09"
+				,"0/08"
+				,"3/38"
+				,"8/8d"
+				,"8/88"
+				,"c/c4"
+				,"a/a6"
+				,"e/e0"
+				,"a/a0"
+				,"a/a9"
+				,"a/aa"
+			];
+
+		function weakrecap(mon_,swipe){			
+			var m = 0;
+			mon_.weakrecap.Matrices.forEach(function(k){
+				var n = 0;
+				k.forEach(function(l){
+					if (m==0) {	//type1
+						k[n] = Game.chart[Game.types.indexOf(mon_.type1)][n];	//type1
+						k[n] = k[n] || Game.chart[Game.types.indexOf(mon_.type1)][n];
+
+						Game.listofimmun.forEach(function(i){
+							if (mon_.immun=="anti-"+i && Game.types[n]==i)
+								k[n] -= 99;
+						});
+					} else 
+					if (m==1) {	//type2
+						k[n] = Game.chart[Game.types.indexOf(mon_.type2)][n];	
+						k[n] = k[n] || Game.chart[Game.types.indexOf(mon_.type2)][n];
+
+						Game.listofimmun.forEach(function(i){
+							if (mon_.immun=="anti-"+i && Game.types[n]==i)
+								k[n] -= 99;
+						});
+					} else 
+					if (m==2) {	//type3
+						k[n] = Game.chart[Game.types.indexOf(mon_.type3)][n];
+						k[n] = k[n] || Game.chart[Game.types.indexOf(mon_.type3)][n];
+					}
+					n++;
+				});
+				m++;
+			});
+
+			m = 0;
+			mon_.weakrecap.Toggle.forEach(function(k){
+				if (mon_.weakrecap.Matrices[0][m] + mon_.weakrecap.Matrices[1][m] > 0){
+					mon_.weakrecap.Toggle[m] = true;
+				} else mon_.weakrecap.Toggle[m] = false;//false;
+				
+				//type3
+				if (mon_.weakrecap.Matrices[2] && (mon_.weakrecap.Matrices[2][m]==0||mon_.weakrecap.Matrices[2][m])){
+					var t1 = mon_.weakrecap.Matrices[0][m];
+					var t2 = mon_.weakrecap.Matrices[1][m];
+					var t3 = mon_.weakrecap.Matrices[2][m];
+					
+					// if ((mon_.weakrecap.Matrices[0][m] + mon_.weakrecap.Matrices[2][m]) + (mon_.weakrecap.Matrices[1][m] + mon_.weakrecap.Matrices[2][m]) > 0)
+		   			
+					// console.warn(Game.types[m], t1*t3,mon_.dual);
+					if (!mon_.dual){
+						if(((t1||t2)+t3)>0) 
+							mon_.weakrecap.Toggle[m] = true;
+						else mon_.weakrecap.Toggle[m] = false;
+					} else {
+			   			if((t1+t2) + (t2+t3) + (t1+t3)>1) 
+							mon_.weakrecap.Toggle[m] = true;
+						else mon_.weakrecap.Toggle[m] = false;
+					}
+				}
+				m++;
+			});
+
+			m = 0;
+			mon_.weakto = [];
+			mon_.weakrecap.Toggle.forEach(function(k){
+				if (k) mon_.weakto.push(Game.types[m]);
+				m++;
+			});
+
+			m = 0;
+			if (mon_.weakness) mon_.weakness.forEach(function(w){
+				var u = 0;
+				w.forEach(function(w_){
+
+					mon_.weakto.forEach(function(w2){
+						if (u==Game.types.indexOf(w2)){
+							//console.log(m,u);
+							mon_.weakness[m][u] *= Game.chart[m][u];
+						}
+					});
+					u++;
+				});
+				m++;
+			});
+		}
+
+		function redraw(matrices){
+			if (!matrices){
+				matrices = all;
+			}
+
+			if (!matrices) return alert(1);
+			// if (matrices.length!=Game.max) return alert(2);
+			// if (matrices[0].length!=Game.max) return alert(3);
+
+			if (!matrices){
+				matrices = all;
+			}
+			var a=1;
+			matrices.forEach(function(h){
+				var b=1;
+				h.forEach(function(v){
+					if (document.getElementById("tbl_"+a+"_"+b)){
+						document.getElementById("tbl_"+a+"_"+b).innerText = v;
+						if (v==0){
+							document.getElementById("tbl_"+a+"_"+b).style.backgroundColor = Data.Color.notok;
+						} else document.getElementById("tbl_"+a+"_"+b).style.backgroundColor = Data.Color.ok;
+					}
+					b++;
+				});
+				a++;
+			});
+
+			for (var a=1; a<mon.length+1; a++){
+				document.getElementById("mon"+a+"_t1").innerHTML = "<img width='100' src='http://jakerodelius.com/web/pokemon-calc/images/"+mon[a-1].type1+".jpg' alt='"+mon[a-1].type1+"'>";
+				
+				document.getElementById("mon"+a+"_t2").innerHTML = "<img width='100' src='http://jakerodelius.com/web/pokemon-calc/images/"+mon[a-1].type2+".jpg' alt='"+mon[a-1].type2+"'>";
+
+			}
+		}
+
+		function default_(val,row,col){
+			if (val==undefined) return [];
+			if (!row) return [];
+			if (!col) var col = row;
+
+			var matrices = [];
+
+			if (row==1) {
+				matrices = [];
+				for (var i=0; i<col; i++){
+					matrices[i] = val;
+				}
+			} else {
+				for (var a=0; a<row; a++){
+					matrices.push([]);
+					for (var b=0; b<col; b++){
+						matrices[a][b] = val;
+					}
+				}
+			}
+
+			//console.warn(matrices);
+			return matrices;
+		}
+
+		function fill(target,source){
+			if (!target) target = [];
+			for (var a=0; a<Game.max; a++){
+				if (!target[a]) target.push([]);
+				for (var b=0; b<Game.max; b++){
+					target[a][b] = source[a][b];
+
+				}
+			}			
+		}
+
+		function maketemp(t1,t2,im,add){
+			var temp = {};
+
+			if (!t1 || !t2) return false;
+
+			temp = {
+				"type1": t1,
+				"type2": t2,
+				"immun": im,
+				"type3": add,
+				"weakrecap" : {
+					"Matrices" : default_(0,2,Game.max),//[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]],
+					"Toggle" : default_(false,1,Game.max)//[false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false]
+				}
+			}
+
+			return temp;
+		}
+
+		function subtotal(id){
+			fill(mon[id].subtotal, default_(1, Game.max));
+
+			var a=0;
+			mon[id].subtotal.forEach(function(k){
+				var b=0;
+				k.forEach(function(j){
+					var temp = maketemp(Game.types[a],Game.types[b]);					
+					weakrecap(temp);
+					temp.weakto.forEach(function(c){
+						mon[id].weakto.forEach(function(d){
+							if (c==d){
+								mon[id].subtotal[a][b] = 0;
+							}
+						});
+					});
+					
+					//mon[id].subtotal[a][b] = 0;//Game.chart[a][b];
+					
+					b++;
+				});
+				a++;
+			});
+
+			reset("all");
+
+			redraw();			
+
+			//Game.total
+			Game.total = Game.max * Game.max;
+			all.forEach(function(k){
+				k.forEach(function(j){
+					if (j==0) Game.total--;
+				});
+			});
+			Game.total = Math.round(Game.total/2);
+		}
+
+
+		function recolorchosen(mon){
+			mon.forEach(function(m){
+				if (document.getElementById("tbl_"+m.id)){
+					document.getElementById("tbl_"+m.id).style.backgroundColor = "#0000ff";
+				} else if (document.getElementById("tbl_"+m.id.split("_")[1] + "_" + m.id.split("_")[0])){
+					//and
+					document.getElementById("tbl_"+m.id.split("_")[1] + "_" + m.id.split("_")[0]).style.backgroundColor = "#0000ff";
+				}
+			});
+		}
+
+		function avail_check(mon){				
+			for (var w=1;w<mon.length+1; w++){
+				if(document.getElementById("avail_"+w) && document.getElementById("db_"+Game.types.indexOf(mon[w-1].type1)+"_"+Game.types.indexOf(mon[w-1].type2))) 
+					document.getElementById("avail_"+w).innerText = document.getElementById("db_"+Game.types.indexOf(mon[w-1].type1)+"_"+Game.types.indexOf(mon[w-1].type2)).innerText;
+
+				if (document.getElementById("avail_"+w).innerText == 0) {
+					document.getElementById("avail_"+w).style.backgroundColor = Data.Color.notok;
+					document.getElementById("avail_"+w).innerText = "X";
+				} else {
+					document.getElementById("avail_"+w).style.backgroundColor = "#ffffff";	
+				}
+			}
+		}
+
+		function selectcell (a,i,t3){
+			if (event.srcElement.disabled==true && Game.restriction){
+				return false;
+			}
+			
+			// console.log("-------------",a);
+
+			if (document.getElementById("table_4a"))
+				document.getElementById("table_4a").innerHTML = "";
+
+			if (document.getElementById("table_4b"))
+				document.getElementById("table_4b").innerHTML = "";
+
+			var t1 = a.split("_")[0]-1;
+			var t2 = a.split("_")[1]-1;
+			var a_rev = a.split("_")[1]+"_"+a.split("_")[0];
+			
+			var now = function(){
+				return mon.length;
+			}
+
+			if (mon.length>=Game.numofpoke)  return alert("Team is full");
+			else {			
+				var dual = false;
+				if (t1==t2) dual = false; else dual = true;
+
+				var temp = maketemp(Game.types[a.split('_')[0]-1],Game.types[a.split('_')[1]-1]);
+				temp.dual = dual;
+				temp.immun = i;
+				// imunis(i);
+				/*if (i) {
+					temp.immun = String(i);
+					console.warn(temp.immun);
+				}*/
+				temp.weakto = [];
+				temp.subtotal = [];
+				temp.weakness = [];
+				temp.id = a;
+				temp.type3 = t3;
+
+				mon.push(temp);
+				// if (mon && mon[1]) console.error(mon[1].immun);
+				fill(mon[mon.length-1]["weakness"],default_(1, Game.max));
+				weakrecap(mon[mon.length-1]);
+
+				document.getElementById("mon"+now()+"_t1").innerText = Game.types[a.split('_')[0]-1];
+				document.getElementById("mon"+now()+"_t2").innerText = Game.types[a.split('_')[1]-1];
+				
+				// document.getElementById("mon"+now()+"_t1").innerHTML = "<img width='100' src='http://jakerodelius.com/web/pokemon-calc/images/"+Game.types[a.split('_')[0]-1]+".jpg' alt='"+Game.types[a.split('_')[0]-1]+"'>";
+				document.getElementById("mon"+now()+"_t1").innerHTML = "<img width=30 src='https://upload.wikimedia.org/wikipedia/commons/thumb/"+Game.wikitype[a.split('_')[0]-1]+"/Pok%C3%A9mon_"+Game.typesUp[a.split('_')[0]-1]+"_Type_Icon.svg/240px-Pok%C3%A9mon_"+Game.typesUp[a.split('_')[0]-1]+"_Type_Icon.svg.png'</img>";
+				
+				// document.getElementById("mon"+now()+"_t2").innerHTML = "<img width='100' src='http://jakerodelius.com/web/pokemon-calc/images/"+Game.types[a.split('_')[1]-1]+".jpg' alt='"+Game.types[a.split('_')[1]-1]+"'>";
+				document.getElementById("mon"+now()+"_t2").innerHTML = "<img width=30 src='https://upload.wikimedia.org/wikipedia/commons/thumb/"+Game.wikitype[a.split('_')[1]-1]+"/Pok%C3%A9mon_"+Game.typesUp[a.split('_')[1]-1]+"_Type_Icon.svg/240px-Pok%C3%A9mon_"+Game.typesUp[a.split('_')[1]-1]+"_Type_Icon.svg.png'</img>";
+
+				if (Game.chartver!='1'){
+					document.getElementById("imun_sel_"+now()).disabled = false;
+					if (i||i==0){
+						document.getElementById("imun_sel_"+now()).value = "anti-"+Game.types[i];
+						imunis(now());
+					}
+				}
+				if (Game.chartver=='3'){
+					document.getElementById("confplus_sel_"+now()).disabled = false;
+					if (t3){
+						var type3id_list = ["ghost","grass"];
+						// console.error("type3-"+(qwe.indexOf(t3)+1));
+						document.getElementById("confplus_sel_"+now()).value = "type3-"+(type3id_list.indexOf(t3)+1);
+						// document.getElementById("confplus_sel_"+x).disabled = false;
+						if (document.getElementById("confplus_sel_"+now()).value!=""){
+							document.getElementById("confplus_"+now()).appendChild(document.createElement("img")).outerHTML = "<br><img width='100' src='http://jakerodelius.com/web/pokemon-calc/images/"+t3+".jpg' alt='"+t3+"'>";				
+							document.getElementById("confplus_"+now()).style.width = "0px";
+						}
+						//@
+						var t3arr = [];
+						Game.types.forEach(function(t){
+							if (!t3) t3arr[Game.types.indexOf(t)] = 1;
+							else t3arr[Game.types.indexOf(t)] = -99;//(Game.chart[Game.types.indexOf(t3)][Game.types.indexOf(t)]);				
+						});
+						mon[now()-1].weakrecap.Matrices[2] = t3arr;
+						if (!t3 && mon[now()-1].weakrecap.Matrices.length>2) {
+							// console.error(9)
+							mon[now()-1].weakrecap.Matrices.pop();
+						}
+						weakrecap(mon[now()-1]);
+						recalculate("allweak");
+					}
+				}
+				recalculate("allweak");
+
+				subtotal(mon.length-1);
+
+				reset("safe");
+
+				document.getElementById("imun_sel_"+now()).focus();
+
+
+				// for (var w=1;w<mon.length; w++){
+				// 	if(document.getElementById("avail_"+w) && document.getElementById("db_"+Game.types.indexOf(mon[w-1].type1)+"_"+Game.types.indexOf(mon[w-1].type2))) 
+				// 		document.getElementById("avail_"+w).innerText = document.getElementById("db_"+Game.types.indexOf(mon[w-1].type1)+"_"+Game.types.indexOf(mon[w-1].type2)).innerText;
+				// 	if (document.getElementById("avail_"+w).innerText == 0) document.getElementById("avail_"+w).innerText = "X";
+				// }
+			}
+
+			// console.log(mon[0].weakto);
+
+			if (document.getElementById("tbl_"+a) && document.getElementById("tbl_"+a_rev)){
+				if (document.getElementById("tbl_"+a).innerText==1 || mon.length<Game.numofpoke+1){
+					document.getElementById("tbl_"+a).innerText = 0;
+					document.getElementById("tbl_"+a).style.backgroundColor = Data.Color.notok;
+
+					document.getElementById("tbl_"+a_rev).innerText = 0;
+					document.getElementById("tbl_"+a_rev).style.backgroundColor = Data.Color.notok;
+				} 
+			}
+
+			avail_check(mon);
+
+			redraw();
+
+			freemode();
+
+			recolorchosen(mon);
+
+			document.getElementById("monnum").innerText = String(mon.length + "/" + Number(document.getElementById("tr2_0").children.length-1));
+
+			// Game.allWeakto = document.getElementById("table_3").innerText.split("Weakness: ")[1].split(", ");
+		}
+
+		function naming(){
+			var i=0; 
+			
+			for (var i=0; i<$(".cell-total").length; i++){
+				var ct = $(".cell-total")[i];
+			    var head = ct.parentElement.children[0].children[0].innerText.toLowerCase();
+		    	// console.log("====");
+				var nimi = "", nimi2="";
+				nimi = String(head);
+				nimi.split(" ").forEach(function(s){
+					Game.types.forEach(function(t){
+						if (s==t){
+							nimi2 += Number(Game.types.indexOf(t))+"_";
+						}
+					});
+				});
+				if (nimi2.length<=3){
+					nimi2 += nimi2.split("_")[0];
+				} else nimi2 = nimi2.slice(0,nimi2.length-1);
+
+				// console.log(nimi2,ct);
+				ct.setAttribute("id","db_"+nimi2);
+			}
+			document.body.appendChild(document.getElementById("database"));
+			document.body.appendChild(document.getElementById("embed"));
+
+			reset("safe");				
+		}
+
+		function begin(ver){
+			//return false;
+			var xmlhttp = new XMLHttpRequest();
+			xmlhttp.onreadystatechange = function() {
+			    if (this.readyState == 4 && this.status == 200) {
+			        Data = JSON.parse(this.responseText);
+			        
+			        var ver = ver;
+			        if (!ver) 
+			        	if (document.getElementById("chartver")){
+			        		ver = document.getElementById("chartver").value;
+			        	}
+			        // ver = 3;//default is gen 6       
+			        
+			        // console.log(ver,Data,Game.title);
+					Game = {
+						"chartver" : ver,
+						"types" : Data.Main[ver.toString()].Types,
+				        "listofimmun" : Data.Main[ver].Listofimmun,
+				        "weakmono" : Data.Main[ver].WeakMono,
+				        "chart": Data.Main[ver].Chart
+					};
+					Game.numoconf = 4;	//type1, type2, immun, add
+					Game.typesUp = [];
+					Game.types.forEach(function(t){
+						// var newup = t.char
+						Game.typesUp.push ( (t[0].toUpperCase()+t.slice(1,t.length)) );
+					});
+					Game.wikitype = [];
+					Game.types.forEach(function(t){
+						var n = 0;
+						for (var t2 in Data.WikiType){
+							if (t == t2) {
+								Game.wikitype.push(Data.WikiType[t]);
+								// return true;
+							}
+							n++;
+						}
+
+					})
+
+					Game.numofpoke = 6;
+					Game.max = Game.types.length;
+			        Game.total = Game.max*Game.max;	
+			        Game.title = document.getElementById("chartver").selectedOptions[0].innerText;
+			        if (document.getElementById("che_res"))
+			        	Game.restriction = document.getElementById("che_res").checked;
+			    	else Game.restriction = true;
+			        // console.log(Game);	
+
+			        if (Game.chartver==2||Game.chartver==3){
+						// pre = ["6_5","16_16","15_18","10_4","2_3"];	//water/fight
+						//pre = ["3_8","2_15","17_17","16_16","2_11"];	//grass/dark
+						// pre = ["5_8","16_16","4_10","15_17"];	//rock/dark
+						//pre = ["18_18"];//normal
+						// pre = ["8_9"];
+						// pre = ["5_5"];
+					} else pre = [];
+
+			        createtable();
+			        reset(0); 
+			        
+			        fill(all,default_(1, Game.max));
+			        if (pre.length>0){
+			        	pre.forEach(function(p){
+			        		selectcell(p);
+			        	})
+			        }
+
+			        //$(function(){
+			        	jQuery(document.body).ready(function(){
+			        		$( "#embed" ).load( "src/Pokemon_dual-type_charts.html #dualtypechart", function(){
+			        			naming();
+			        		});
+			        	})
+			        //});
+
+			        //coloring is broken
+			        // document.getElementsByClassName("cell").children.forEach(function(e){
+			        // 	e.style.backgroundColor = Data.Color.notok;
+			        // });
+			        //document.querySelector('.cell').style.backgroundColor = "#ff0000";
+			        //getComputedStyle(document.querySelector('.cell')).setProperty('backgroundColor', "rgb(255, 0, 0)"); 
+			    }
+			};
+			xmlhttp.open("GET", "./main.json", true);
+			xmlhttp.send();
+		}
+
+		function sel_charver(){
+			var ver = event.srcElement.value;
+			// console.warn(ver);
+			Game = {};
+			
+			all = [];
+			allweak = [];
+			remainings = [];
+			Data = {};		
+			mon = [];
+
+			begin(ver);
+			
+		}
+
+		function freemode(q){
+			var restriction_master;
+
+			if (document.getElementById("che_res"))
+				var q = document.getElementById("che_res").checked;
+			else var q = true;
+			
+			restriction_master = Data.Main[Game.chartver].Restriction;	
+		
+			// if (document.getElementById("table_3"))
+			// document.getElementById("table_3").parentElement.removeChild(document.getElementById("table_3"));
+
+			if (q){
+				redraw();
+
+				var restriction = [];
+				var a = 0;
+				restriction_master.forEach(function(n){
+					n[1].forEach(function(t){
+						restriction.push(Number(Game.types.indexOf(n[0])+1) + "_" + Number(1 + Game.types.indexOf(t)));
+						restriction.push(Number(Game.types.indexOf(t)+1) + "_" + Number(1 + Game.types.indexOf(n[0])));
+					})
+					a++;
+				});
+
+				var ver_ref;
+				var unavpokemon = {};
+				var newpokemon = {};
+				var newtype = {};
+
+				[1,2,3,4,5,6,"DPPt","HGSS","SwSh","BDSP","B2W2"].forEach(function(tid){
+					if (Data.Conf[tid]){
+						if (Data.Conf[tid].NewType){
+							newtype[tid] = Data.Conf[tid].NewType;
+						}
+						if (Data.Conf[tid].UnavMon){
+							unavpokemon[tid] = Data.Conf[tid].UnavMon;
+						}
+						if (Data.Conf[tid].NewMon){
+							newpokemon[tid] = Data.Conf[tid].NewMon;
+						}
+					}
+				})
+
+					// console.log(newtype[2],newpokemon[4]);
+				newtype["DPPt"] = newtype[2];
+				newpokemon["DPPt"] = newpokemon[4];
+				// console.log(newpokemon["DPPt"]);
+				unavpokemon["HGSS"] = newpokemon[4];
+				newtype["BDSP"] = newtype[3];
+				unavpokemon["BDSP"] = newpokemon[6];
+				newtype["SwSh"] = newtype[6];
+
+				[1,2,3,4,5,6,"DPPt","HGSS","SwSh","BDSP","B2W2"].forEach(function(tid){
+					if (tid==Game.title){
+						Game.unavpokemon = unavpokemon[tid]
+						Game.newpokemon = newpokemon[tid];
+						Game.newtype = newtype[tid];
+					}
+				})
+
+				var gen_recap = [];
+				var def_recap;
+				var newtype_id;
+				var cur_gen;
+
+				switch (document.getElementById("chartver").selectedOptions[0].innerText){
+					default :
+						ver_ref = Game.chartver;
+						// unavpokemon = {};
+						// newpokemon = {};
+						// newtype = [[]];
+						break;
+					case "Gen 4" :
+						ver_ref = 1;	
+						newtype_id = 2;
+						gen_recap = [2,3,4];
+						break;
+					case "GSC" : 
+						ver_ref = 1;	
+						newtype_id = 2;
+						gen_recap = [2];
+						break;
+					case "RSE" : 
+						ver_ref = 1;
+						newtype_id = 2;
+						gen_recap = [2,3];
+						cur_gen = 3;			
+						break;
+					case "DPPt" : 
+						ver_ref = 1;
+						newtype_id = 2;
+						gen_recap = [2,3,4,"DPPt"];
+						cur_gen = 4;		
+						break;
+					case "HGSS" : 
+						ver_ref = 1;
+						newtype_id = 2;
+						gen_recap = [2,3,4];
+						cur_gen = 4;		
+						break;
+					case "BDSP" : 
+						ver_ref = 3;
+						newtype_id = "BDSP";
+						gen_recap = [2,3,4,"BDSP"];
+						cur_gen = 4;		
+						break;
+					case "SwSh" : 
+						ver_ref = 3;
+						newtype_id = "SwSh";
+						gen_recap = ["SwSh"];
+						cur_gen = 8;
+						break;
+				}	
+
+				Data.Main[ver_ref].Restriction.forEach(function(tid){
+					tid[1].forEach(function(t){
+						restriction.push(Number(Game.types.indexOf(tid[0])+1) + "_" + Number(1 + Game.types.indexOf(t)));
+						restriction.push(Number(Game.types.indexOf(t)+1) + "_" + Number(1 + Game.types.indexOf(tid[0])));
+
+					})
+					Game.types.forEach(function(t){
+						if (newtype[newtype_id]) newtype[newtype_id].forEach(function(nt){
+							if (t==nt){
+								restriction.push(Number(Game.types.indexOf(tid[0])+1) + "_" + Number(1 + Game.types.indexOf(t)));
+								restriction.push(Number(Game.types.indexOf(t)+1) + "_" + Number(1 + Game.types.indexOf(tid[0])));
+							}
+						});
+					});
+				});	
+
+				// console.log(unavpokemon)
+				// gen_recap.forEach(function(gen){
+					if (unavpokemon[newtype_id]) unavpokemon[newtype_id].forEach(function(np){
+						np[1].forEach(function(nt){
+							// console.log(np[0],nt,"-->",1+Game.types.indexOf(np[0]),1+Game.types.indexOf(nt));
+							restriction.push((Number(1+Game.types.indexOf(np[0])))+"_"+(Number(1+Game.types.indexOf(nt))));
+							restriction.push((Number(1+Game.types.indexOf(nt)))+"_"+(Number(1+Game.types.indexOf(np[0]))));
+						})
+					});
+				// });
+				gen_recap.sort().forEach(function(id){
+					if (newpokemon[id]) newpokemon[id].forEach(function(np){
+						np[1].forEach(function(t2){
+							var t_1 = 1+Game.types.indexOf(np[0]);
+							var t_2 = 1+Game.types.indexOf(t2);
+							while(restriction.indexOf(t_1+"_"+t_2)>-1){
+								restriction.splice(restriction.indexOf(t_1+"_"+t_2),1);
+							}
+							while(restriction.indexOf(t_2+"_"+t_1)>-1){
+								restriction.splice(restriction.indexOf(t_2+"_"+t_1),1);
+							}
+						})
+					})
+				});
+				
+				//other unav ones
+				if ("DPPt"==Game.title){
+					if (unavpokemon["DPPt"]) unavpokemon["DPPt"].forEach(function(np){
+						np[1].forEach(function(nt){
+							// console.log(np[0],nt,"-->",1+Game.types.indexOf(np[0]),1+Game.types.indexOf(nt));
+							restriction.push((Number(1+Game.types.indexOf(np[0])))+"_"+(Number(1+Game.types.indexOf(nt))));
+							restriction.push((Number(1+Game.types.indexOf(nt)))+"_"+(Number(1+Game.types.indexOf(np[0]))));
+						})
+					});
+				} else if ("HGSS"==Game.title){
+					if (unavpokemon["HGSS"]) unavpokemon["HGSS"].forEach(function(np){
+						np[1].forEach(function(nt){
+							// console.log(np[0],nt,"-->",1+Game.types.indexOf(np[0]),1+Game.types.indexOf(nt));
+							restriction.push((Number(1+Game.types.indexOf(np[0])))+"_"+(Number(1+Game.types.indexOf(nt))));
+							restriction.push((Number(1+Game.types.indexOf(nt)))+"_"+(Number(1+Game.types.indexOf(np[0]))));
+						})
+					});
+				}
+
+				// console.log(restriction);
+				if (q)  detailing();
+
+				restriction.forEach(function(r){
+					if (document.getElementById("tbl_"+r)){
+						document.getElementById("tbl_"+r).style.backgroundColor = "#000000";
+						document.getElementById("tbl_"+r).disabled = true;
+					}
+					// document.getElementById("tbl_"+r).innerText = "X";
+				});
+			} else {
+				redraw();
+			}
+		}
+
+		function reset(p,num){
+			
+			if (p==0){
+				// console.clear();
+				
+				allweak = [];
+				if (document.getElementById("table_3"))
+					document.getElementById("table_3").innerHTML = "Weakness: ";
+				if (document.getElementById("table_4a"))
+					document.getElementById("table_4a").innerHTML = "";
+				if (document.getElementById("table_4b"))
+					document.getElementById("table_4b").innerHTML = "";
+				reset("safe");
+				reset("avail");
+				mon = [];
+				all = [];
+				fill(all,default_(1, Game.max));
+				reset("main");
+
+				freemode();
+
+				document.getElementById("monnum").innerText = String(mon.length + "/" + Number(document.getElementById("tr2_0").children.length-1));
+			} else if (p=="main"){
+				for (var a=1; a<Game.numofpoke+1; a++){
+					for (var b=1; b<2+1; b++){
+						if (document.getElementById("mon"+a+"_t"+b))
+						document.getElementById("mon"+a+"_t"+b).innerText = "";
+					}
+					["imun_sel_"+a,"confplus_sel_"+a].forEach(function(conf){
+						if (document.getElementById(conf)){
+							document.getElementById(conf).value = "";
+							document.getElementById(conf).disabled = true;
+						}
+					})
+					while(document.getElementById("confplus_"+a).children.length>1)
+					// if (document.getElementById("confplus_"+a).children.length>1)
+						document.getElementById("confplus_"+a).removeChild(document.getElementById("confplus_"+a).children[1]);
+				}
+				for (var a=0; a<Game.max; a++){
+					for (var b=0; b<Game.max; b++){
+						if (document.getElementById("tbl_"+Number(a+1)+"_"+Number(b+1))
+						){
+							document.getElementById("tbl_"+Number(a+1)+"_"+Number(b+1)).innerText = 1;
+							document.getElementById("tbl_"+Number(a+1)+"_"+Number(b+1)).style.backgroundColor = Data.Color.ok;
+
+						}
+						if (document.getElementById("tbl_"+Number(b+1)+"_"+Number(a+1))
+						){
+							document.getElementById("tbl_"+Number(b+1)+"_"+Number(a+1)).innerText = 1;
+							document.getElementById("tbl_"+Number(b+1)+"_"+Number(a+1)).style.backgroundColor = Data.Color.ok;
+
+						}
+					}		
+				}
+				// freemode();
+			} else if (p=="del"){
+				reset("main");
+				var x=1;
+				mon.forEach(function(m){
+					document.getElementById("mon"+x+"_t1").innerText = m.type1;
+					document.getElementById("mon"+x+"_t2").innerText = Game.types[Game.types.indexOf(m.type2)];
+					
+					document.getElementById("imun_sel_"+x).value = m.immun;
+					document.getElementById("imun_sel_"+x).disabled = false;
+
+					// console.log(111111);
+					// console.log(m,m.immun);
+					if (m.type3){
+						var type3id_list = ["ghost","grass"];
+						// console.log("bababab",m.type3);
+
+						document.getElementById("confplus_sel_"+x).value = "type3-"+(Number(1+type3id_list.indexOf(m.type3)));//m.type3;
+					
+					}
+
+					if (Game.chartver=='3'){
+						// document.getElementById("confplus_"+x).innerHTML = "";
+						document.getElementById("confplus_sel_"+x).disabled = false;
+						if (document.getElementById("confplus_sel_"+x).value!=""){
+							document.getElementById("confplus_"+x).appendChild(document.createElement("img")).outerHTML = "<br><img width='100' src='http://jakerodelius.com/web/pokemon-calc/images/"+m.type3+".jpg' alt='"+m.type3+"'>";				
+							document.getElementById("confplus_"+x).style.width = "0px";
+						}
+					}
+					x++;
+					if (
+						document.getElementById("tbl_"+Number(Game.types.indexOf(m.type2)+1)+"_"+Number(Game.types.indexOf(m.type1)+1))
+					){
+						document.getElementById("tbl_"+Number(Game.types.indexOf(m.type2)+1)+"_"+Number(Game.types.indexOf(m.type1)+1)).innerText = 0;
+						document.getElementById("tbl_"+Number(Game.types.indexOf(m.type2)+1)+"_"+Number(Game.types.indexOf(m.type1)+1)).style.backgroundColor = Data.Color.notok;
+
+					}
+
+					if(
+						document.getElementById("tbl_"+Number(Game.types.indexOf(m.type1)+1)+"_"+Number(Game.types.indexOf(m.type2)+1))
+						){
+						document.getElementById("tbl_"+Number(Game.types.indexOf(m.type1)+1)+"_"+Number(Game.types.indexOf(m.type2)+1)).innerText = 0;
+						document.getElementById("tbl_"+Number(Game.types.indexOf(m.type1)+1)+"_"+Number(Game.types.indexOf(m.type2)+1)).style.backgroundColor = Data.Color.notok;
+
+					}
+					
+				});
+				// reset("safe");
+				// reset("avail");
+
+				// freemode();
+			} else if (p=="all"){
+				fill(all,default_(1, Game.max));
+				for (var i=0; i<mon.length; i++){
+					var x=0;
+					all.forEach(function(k){
+						var y=0;
+						k.forEach(function(){
+							all[x][y] *= mon[i].subtotal[x][y];
+							y++;
+						});
+						x++;
+					});
+				}
+				reset("avail");
+				// freemode();
+			} else if (p=="safe"){				
+				document.getElementById("table_4").innerHTML = "Safe against : ";
+				remainings = [];
+				// console.warn(allweak);
+				if (Game.types.length>allweak.length){
+					var g = 0;
+					Game.types.forEach(function(a){
+						// if (Game.total<9){ //idk why 9
+							if (g==0) {
+								Game.types.forEach(function(i){
+									if (allweak.indexOf(i)<0){
+										if (i!="normal"){
+											document.getElementById("table_4").innerHTML += "<a onclick='findmon_onlyweakto("+Game.types.indexOf(i)+")' href='#'>"+i +"</a>? ";
+											remainings.push(i);
+										}
+									}
+								});
+							}
+						// }
+						/* else {
+
+							Game.listofimmun.forEach(function(i){
+								if (i==a){
+									document.getElementById("table_4").innerHTML += "<a onclick='findmon_onlyweakto("+Game.types.indexOf(a)+")' href='#'>"+a +"</a>? ";
+								} 
+							}) 
+						}*/
+						g++;
+					})
+					
+					//eelektross etc
+					document.getElementById("table_4").innerHTML += "<a href='#' onclick='findmon_onlyweakto(99)'>nothing</a>?"
+				}
+
+				reset("avail");
+			} else if (p=="avail"){
+				for (var w=1;w<Game.numofpoke+1; w++){
+					if(document.getElementById("avail_"+w)){
+						document.getElementById("avail_"+w).innerText = "";
+						document.getElementById("avail_"+w).style.backgroundColor = "#ffffff";	
+
+					}
+				}
+			}
+
+
+			
+		}
+
+		function findmon_onlyweakto(t,firstlayer,res,monow){
+			var result = [], result2 = [], resultsingle = [], result2single = [];
+			// console.log(t,firstlayer,res,monow);
+
+			if (350!=Number((document.getElementById("folddiv").style.height).slice(0,(document.getElementById("folddiv").style.height.length)-2)))
+				document.getElementById("folddiv").style.height = "350px";
+			if (!firstlayer){
+				Game.types.forEach(function(x){
+					Game.types.forEach(function(y){	
+						var temp = maketemp(x,y);
+						weakrecap(temp);
+						if (temp.weakto.length==1){
+							if (t==99){
+								Game.listofimmun.forEach(function(i){
+									if (i==temp.weakto[0]){
+										resultsingle.push([x,y].sort());
+									}
+								});
+							} else {
+								if(temp.weakto[0]==Game.types[t]){
+									resultsingle.push([x,y].sort());
+								}
+							}
+						} else if (temp.weakto.length>1){
+							if (temp.weakto.indexOf(Game.types[t])<0) 
+								return false;
+
+							result.push([x,y].sort());
+						}
+					});
+				});	
+
+				if (result) {
+					result.sort();
+					// console.warn(123,result);			
+					var n = 0;
+					result.forEach(function(r1){
+						if (n>0){							
+							if(!((r1[0]==result[n-1][0])&&(r1[1]==result[n-1][1]))){
+								result2.push(r1);								
+							}							
+						} else {
+							result2.push(r1);							
+						}
+						n++;
+					});
+					// console.warn(456,result2);
+					findmon_onlyweakto(t,true,result2,false);
+				} 
+				if (resultsingle) {
+					resultsingle.sort();
+					if (t==99){		
+						var c = 0;
+						var finished = false;
+
+						function deldup(b,d){
+							resultsingle.sort();
+							var c = b-1;
+							if (resultsingle[b] && resultsingle[c]){
+								if ((resultsingle[b][0]==resultsingle[c][0]) && (resultsingle[b][1]==resultsingle[c][1])){
+									resultsingle.pop();
+									
+									if ((resultsingle[d][0]==resultsingle[d+1][0]) && (resultsingle[d][1]==resultsingle[d+1][1])){
+										console.log("shift",d);
+										finished |= false;
+										resultsingle.shift();
+									} else finished |= true;
+								}
+							}
+						}
+
+						//sorting/filtering is broken i giv up
+						/*for (var u=1; u<resultsingle.length-1; u++){
+							if (!finished) {
+								deldup(resultsingle.length-1-u,u-1);
+							}
+
+							var e=0
+							if (u==resultsingle.length-1-1){
+								for (var i=0; i<resultsingle.length-1; i++){
+									if ((resultsingle[i][0]==resultsingle[i+1][0]) && (resultsingle[i][1]==resultsingle[i+1][1])){
+										
+										resultsingle.splice(i,1);
+									}
+								}
+							}
+						}*/
+
+						resultsingle.forEach(function(r3){
+							var temp5 = maketemp(r3[0],r3[1]);
+							Game.listofimmun.forEach(function(i){
+								temp5.immun = "anti-"+i;
+								weakrecap(temp5);
+								var found = true;
+
+								temp5.weakto.forEach(function(wt){
+									found = false;
+								});
+
+								if (found){
+									temp5.weakto.sort();
+									document.getElementById("table_4b").innerHTML += "<a href='#' onclick='selectcell(`"+Number(Game.types.indexOf(r3[0]) + 1)+"_"+Number(Game.types.indexOf(r3[1]) + 1)+"`, "+Game.types.indexOf(i)+")'>"+r3[0]+"/"+r3[1]+"</a>(anti-"+i+"),,,,,,, ";
+								}
+							});
+							c++;
+						});
+					} else {
+						var n = 0;
+						resultsingle.forEach(function(r1){
+							if (n>0){							
+								if(!((r1[0]==resultsingle[n-1][0])&&(r1[1]==result[n-1][1]))){
+									result2single.push(r1);								
+								}							
+							}
+							n++;
+						});
+						findmon_onlyweakto(t,true,result2single,true);						
+					}
+				}
+			} else {
+				// console.warn(789,res);
+				res.forEach(function(x){
+					var temp = maketemp(x[0],x[1]);
+					weakrecap(temp);
+					//console.error(temp.weakto);
+
+					if (temp.weakto.length==1){
+						result2single.push([x[0],x[1]].sort());
+					}
+					else if (temp.weakto.length>1){
+						// if (temp.weakto.indexOf(allweak[t])>=0) 
+						// 	return false;
+						// console.error(monow);
+
+						if (!monow) {
+							if (Game.listofimmun.indexOf(event.srcElement.innerText) <0){
+								return [];
+							}
+							var temp2 = maketemp(x[0],x[1]);
+							weakrecap(temp2);
+							// console.error(temp2.weakto);
+							var q = 0;
+							if (allweak.length>0) {
+								allweak.forEach(function(w){
+									if(temp2.weakto.indexOf(w)>=0){
+										
+									} else {
+										if (q==0) {
+											result2.push([x[0],x[1]].sort());
+										}
+									}
+									q++;
+								});								
+							} else {
+								result2.push([x[0],x[1]].sort());
+							}
+						}
+					} else console.error(123456);
+				});
+				reset("safe");
+
+				// console.warn(Game.total,result2,result2single,monow);
+				if (result2 && !monow){
+					if (!document.getElementById("table_4b")) document.getElementById("table_4").parentElement.parentElement.appendChild(document.createElement('tr')).appendChild(document.createElement('td')).id="table_4b";
+					result2.sort();
+					if (Game.total==0){
+						document.getElementById("table_4b").innerHTML = "Potential"+" recruits : ";
+						
+						result2.forEach(function(r2){
+							var temp4 = maketemp(r2[0],r2[1]);
+							weakrecap(temp4);
+							temp4.weakto.sort();
+
+							var c = 0;
+							Game.listofimmun.forEach(function(i){
+								temp4.immun = "anti-"+i;
+								weakrecap(temp4);
+								var found = true;
+
+								temp4.weakto.forEach(function(wt){
+									if (remainings.indexOf(wt)<0){
+										found *= false;
+									}
+								});
+
+								if (found){
+									temp4.weakto.sort();
+									document.getElementById("table_4b").innerHTML += "<a href='#' onclick='selectcell(`"+Number(Game.types.indexOf(r2[0]) + 1)+"_"+Number(Game.types.indexOf(r2[1]) + 1)+"`, "+Game.types.indexOf(i)+")'>"+r2[0]+"/"+r2[1]+"</a>(anti-"+i+"),,,,,,, ";								
+								}
+							});
+						});
+					} else {
+						var modifmon=[];
+						result2.forEach(function(r2){
+							//@
+							Game.listofimmun.forEach(function(im){
+								// if (im==Game.types[t]){
+
+									var temp7 = maketemp(r2[0],r2[1],"anti-"+im);
+									weakrecap(temp7);
+									// console.warn(r2[0],r2[1],"anti-"+im,temp7.weakto)
+									if (temp7.weakto.length>1) {
+											temp7.weakto.forEach(function(wt){
+											if(allweak.indexOf(wt)<0){
+												//let it be
+												// modifmon.push([r2[0],r2[1],"anti-"+im]);
+											}
+										})
+									} else if (temp7.weakto.length==1 && temp7.weakto[0]==Game.types[t]){
+										// console.error(r2[0],r2[1],"anti-"+im,temp7.weakto)
+										result2single.push([r2[0],r2[1],Game.types.indexOf(im)]);
+									}
+							});
+							var type3id_list = [1,2];
+							type3id_list.forEach(function(t3){
+								//type3-1...
+								//$
+								var qwe = ["ghost","grass"];
+								r2[2] = qwe[t3-1];
+								var temp8 = maketemp(r2[0],r2[1],undefined,r2[2]);
+
+								var t3arr = [];
+								Game.types.forEach(function(t){
+									if (!t3) t3arr[Game.types.indexOf(t)] = 1;
+									else t3arr[Game.types.indexOf(t)] = -99;//(Game.chart[Game.types.indexOf(t3)][Game.types.indexOf(t)]);				
+								});
+								temp8.weakrecap.Matrices[2] = t3arr;
+								if (!t3 && temp8.weakrecap.Matrices.length>2) {
+									temp8.weakrecap.Matrices.pop();
+								}
+
+								weakrecap(temp8);
+								if (temp8.weakto.length==1 && temp8.weakto[0]==Game.types[t]){
+									result2single.push([r2[0],r2[1],undefined,r2[2]]);
+									//@
+									// console.warn(r2[0],r2[1],"+",r2[2],temp8.weakto);
+								} else {
+									Game.listofimmun.forEach(function(im){
+										temp8.immun = im;
+										weakrecap(temp8);
+										// console.warn(r2[0],r2[1],"anti-"+im,temp7.weakto)
+										if (temp8.weakto.length>1) {
+												temp8.weakto.forEach(function(wt){
+												if(allweak.indexOf(wt)<0){
+													//let it be
+												}
+											})
+										} else if (temp8.weakto.length==1 && temp8.weakto[0]==Game.types[t]){
+											result2single.push([r2[0],r2[1],Game.types.indexOf(im)]);
+										}
+											// console.error(r2[0],r2[1],r2[2],"anti-"+im,temp8.weakto)
+									});
+									// console.error(temp8);
+								}
+							})
+							// temp7.weakto.sort();
+							// console.error(temp7.weakto.length);
+						})
+						// console.error(modifmon);
+
+						//findmon_onlyweakto(t,true,result2single,true);
+						Game.bonusteam = result2single;
+						// console.warn(monow,result2single);
+						document.getElementById("table_4b").innerHTML = "Anti-"+Game.types[t]+" immmunities : ";//+result2.length;
+						result2.forEach(function(r2){
+							document.getElementById("table_4b").innerHTML += "<a href='#' onclick='selectcell(`"+Number(Game.types.indexOf(r2[0]) + 1)+"_"+Number(Game.types.indexOf(r2[1]) + 1)+"`, "+t+")'>"+r2[0]+"/"+r2[1]+"</a>,,,,,,, ";
+						});
+
+					}
+				} 
+				if(result2single && monow) {
+					if (!document.getElementById("table_4a")) document.getElementById("table_4").parentElement.parentElement.appendChild(document.createElement('tr')).appendChild(document.createElement('td')).id="table_4a";	
+					result2single.sort();
+					
+					// document.getElementById("table_4").appendChild(document.createElement('tr')).appendChild(document.createElement('td')).innerText = "-------";
+					
+					if (Game.total==0 || Game.listofimmun.indexOf(Game.types[t])<0){
+						for (var a=0; a<Game.max; a++){
+							if(Game.weakmono[Game.types[a]].length==2){
+								var temp3 = maketemp(Game.types[a],Game.types[a]);
+								weakrecap(temp3);
+								temp3.weakto.sort();
+								var idw;
+								if (temp3.weakto.indexOf(Game.types[t])<0) {}
+								else {
+									var found = false;
+									Game.listofimmun.forEach(function(i){
+										if (temp3.weakto.indexOf(i)>=0){
+											found |= true;
+										}
+									});
+									if (found){
+										result2single.push([Game.types[a], Game.types[a]]);
+										idw = Game.types.indexOf(temp3.weakto[temp3.weakto.length-temp3.weakto.indexOf(Game.types[t])-1]);
+										/*console.log(Game.types[a], temp3.weakto, Game.types[t], found, 
+											temp3.weakto.length-temp3.weakto.indexOf(Game.types[t])-1,
+											temp3.weakto[temp3.weakto.length-temp3.weakto.indexOf(Game.types[t])-1],
+											Game.types.indexOf(temp3.weakto[temp3.weakto.length-temp3.weakto.indexOf(Game.types[t])-1])
+											);		*/
+									}
+								}
+							}
+						}
+						document.getElementById("table_4a").innerHTML = "Weak only to "+Game.types[t]+" : ";//+result2.length;
+						result2single.forEach(function(r1){
+							document.getElementById("table_4a").innerHTML += "<a href='#' onclick='selectcell(`"+Number(Game.types.indexOf(r1[0]) + 1)+"_"+Number(Game.types.indexOf(r1[1]) + 1)+"`"+","+idw+")'>"+r1[0]+"/"+r1[1]+"</a>,,,,,,, ";
+						});
+					} else {
+						document.getElementById("table_4a").innerHTML = "Weak only to "+Game.types[t]+" : ";//+result2.length;
+						result2single.forEach(function(r1){
+							document.getElementById("table_4a").innerHTML += "<a href='#' onclick='selectcell(`"+Number(Game.types.indexOf(r1[0]) + 1)+"_"+Number(Game.types.indexOf(r1[1]) + 1)+"`"+")'>"+r1[0]+"/"+r1[1]+"</a>,,,,,,, ";
+						});
+						if(Game.bonusteam) Game.bonusteam.forEach(function(r1){
+							if (r1[2] && !r1[3]){
+
+								document.getElementById("table_4a").innerHTML += "<a href='#' onclick='selectcell(`"+Number(Game.types.indexOf(r1[0]) + 1)+"_"+Number(Game.types.indexOf(r1[1]) + 1)+"`"+",`"+r1[2]+"`)'>"+r1[0]+"/"+r1[1]+"</a>(anti-"+Game.types[r1[2]]+"),,,,,,, ";
+							} else if (!r1[2] && r1[3]){
+								document.getElementById("table_4a").innerHTML += "<a href='#' onclick='selectcell(`"+Number(Game.types.indexOf(r1[0]) + 1)+"_"+Number(Game.types.indexOf(r1[1]) + 1)+"`"+","+undefined+",`"+r1[3]+"`)'>"+r1[0]+"/"+r1[1]+"</a>(/"+r1[3]+"),,,,,,, ";
+								// console.log(r1[3]);
+
+							} else {
+								// console.error("err")
+							}
+						});
+						
+					}
+				} 
+				/*else if (result2single && !monow){
+					if (!document.getElementById("table_4a")) document.getElementById("table_4").parentElement.parentElement.appendChild(document.createElement('tr')).appendChild(document.createElement('td')).id="table_4a";	
+					result2single.forEach(function(r1){
+						console.log("ini",r1)
+						document.getElementById("table_4a").innerHTML += "<b>"+r1[1]+"</b>";
+						//document.getElementById("table_4a").innerHTML += "<a href='#' onclick='selectcell(`"+Number(Game.types.indexOf(r1[0]) + 1)+"_"+Number(Game.types.indexOf(r1[1]) + 1)+"`"+")'>"+r1[0]+"/"+r1[1]+"</a>(),,,,,,, ";
+					});
+				}*/
+			}	
+
+			if (document.getElementById("table_4b"))
+			document.getElementById("table_4b").style.maxHeight = "0px";		
+		}
+		
+		function recalculate(ord,num){
+			if (mon.length == 0 && mon.length == 0) {
+			} else {
+				if (ord=="del"){
+
+					if (!mon[num])
+						return false;
+
+					for (var a=0; a<mon.length; a++){
+						if (a==num){
+							mon[a] = false;
+						}
+					}
+					mon.sort();
+					mon.pop(-1);
+					reset("del",num+1);
+					if (mon.length<1){
+						reset(0);
+					}
+					recalculate("all");
+					// detailing();
+				} else if(ord=="all"){				
+					all = [];
+					fill(all,default_(1, Game.max));
+					
+					if (mon.length>0) {
+						mon.forEach(function(m){
+						if (m.subtotal){
+							var a=0;
+							all.forEach(function(k){
+								var b=0;
+								k.forEach(function(){
+									all[a][b] *= m.subtotal[a][b];
+									b++;
+								});
+								a++;
+							});
+						}
+						});
+
+					} else console.warn(123321);
+
+					allweak = [];
+					if (document.getElementById("table_3")) document.getElementById("table_3").innerHTML = "Weakness: ";
+					recalculate("allweak");
+					if(document.getElementById("table_4a")) document.getElementById("table_4a").innerHTML = "";
+					if(document.getElementById("table_4b")) document.getElementById("table_4b").innerHTML = "";
+
+					
+				} else if(ord=="allweak"){	
+					allweak = [];
+					if (mon.length>0) mon.forEach(function(m){
+						if (m.weakto.length>0) 
+						m.weakto.forEach(function(mw){
+							if (allweak.indexOf(mw)<0){
+								allweak.push(mw);
+							}
+						})
+					})
+					allweak.sort();
+
+					if (document.getElementById("table_3")){
+						document.getElementById("table_3").innerHTML = "Weakness: ";
+						if (allweak.length>0) allweak.forEach(function(aw){
+							document.getElementById("table_3").innerHTML += aw + ", ";
+						})
+					}
+				}
+			}
+
+			reset("safe");
+			
+			//Game.total
+			Game.total = Game.max * Game.max;
+			all.forEach(function(k){
+				k.forEach(function(j){
+					if (j==0) Game.total--;
+				});
+			});
+			Game.total = Math.round(Game.total/2);
+
+			redraw();
+			freemode();
+			
+
+					avail_check(mon);
+			recolorchosen(mon);
+
+			//moncount
+			document.getElementById("monnum").innerText = String(mon.length + "/" + Number(document.getElementById("tr2_0").children.length-1));
+
+			// Game.allWeakto = document.getElementById("table_3").innerText.split("Weakness: ")[1].split(", ");
+		}
+
+		function imunis(a){
+			mon[a-1].immun = document.getElementById("imun_sel_"+a).value;
+			weakrecap(mon[a-1]);
+
+			subtotal(a-1);
+
+			reset("all");
+			for (var i=0; i<mon.length; i++){
+				var x=0;
+				all.forEach(function(k){
+					var y=0;
+					k.forEach(function(){
+						all[x][y] *= mon[i].subtotal[x][y];
+						y++;
+					});
+					x++;
+				});
+			}
+
+			redraw();
+
+			allweak = [];
+			if (document.getElementById("table_3")) document.getElementById("table_3").innerHTML = "Weakness: ";
+			recalculate("allweak");
+		}
+		
+		function createtable(){
+			document.body.appendChild(document.createElement('div')).id="maindiv";
+			document.getElementById("maindiv").style.backgroundColor = "#eaeaea";
+			document.getElementById("maindiv").style.width = "100%";
+			document.getElementById("maindiv").style.height = "100%";
+			document.getElementById("maindiv").style.overflow = "auto";
+
+			document.getElementById("maindiv").appendChild(document.createElement('div')).id="folddiv";
+			document.getElementById("folddiv").style.backgroundColor = "#bababa";
+			document.getElementById("folddiv").style.width = "100%";
+			document.getElementById("folddiv").style.height = "0px"; //"300px";
+			document.getElementById("folddiv").style.overflow = "auto";
+
+			document.getElementById("folddiv").style.position = "absolute";
+			document.getElementById("folddiv").style.zIndex = 10;
+			document.getElementById("folddiv").style.opacity = 0.90;
+
+			if (!document.getElementById("table_2"))
+				// document.body.appendChild(document.createElement('table')).id="table_2";
+				document.getElementById("folddiv").appendChild(document.createElement('table')).id="table_2";
+			document.getElementById('table_2').setAttribute('border',1);
+
+			document.getElementById('table_2').innerHTML = "";
+			
+			for (var e=0; e<Game.numofpoke; e++){
+				if (!document.getElementById("tr2_"+e))
+					document.getElementById('table_2').appendChild(document.createElement('tr')).id = "tr2_"+e;
+				for (var f=0; f<Game.numofpoke+1; f++){
+					if (e==0){
+						if (f!=0) 					document.getElementById('tr2_'+e).appendChild(document.createElement('td')).id = "avail_"+f;
+						else {
+							document.getElementById('tr2_'+e).appendChild(document.createElement('td')).innerText = "#Avail.";
+						}
+					} else {
+						if (e>0&&f==0){
+							if (e==3) document.getElementById('tr2_'+e).appendChild(document.createElement('td')).innerText = "Immun.";
+							else if (e==1 || e==2) document.getElementById('tr2_'+e).appendChild(document.createElement('td')).innerText = "Type"+e;
+							else if (e==5) document.getElementById('tr2_'+e).appendChild(document.createElement('td')).innerHTML = "<button value='reset' onclick=reset(0)>reset</button>";
+							else if (e==Game.numoconf) document.getElementById('tr2_'+e).appendChild(document.createElement('td')).innerHTML = "Add.";
+						} else {
+							if (e==1 || e==2)
+							document.getElementById('tr2_'+e).appendChild(document.createElement('td')).id = "mon"+f+"_t"+e;
+							else if (e==3)
+							document.getElementById('tr2_'+e).appendChild(document.createElement('td')).id = "mon"+f+"_imun";
+							else  if (e==5)
+							document.getElementById('tr2_'+e).appendChild(document.createElement('td')).id = "con"+f;
+							else  if (e==Game.numoconf)
+							document.getElementById('tr2_'+e).appendChild(document.createElement('td')).id = "confplus_"+f;
+
+							//document.getElementById("cell2_"+e+"_"+f).innerText = "___";
+
+						}
+
+					}
+
+				}
+			}
+			
+			for(var f=1; f<Game.numofpoke+1; f++){
+				if (!document.getElementById("imun_sel_"+f))
+					document.getElementById("mon"+f+"_imun").appendChild(document.createElement('select')).id = "imun_sel_"+f;
+				document.getElementById("imun_sel_"+f).disabled = true;
+				document.getElementById("imun_sel_"+f).innerHTML += "<option selected value=''>.</option>";
+				Game.listofimmun.forEach(function(i){
+					document.getElementById("imun_sel_"+f).innerHTML += "<option value=anti-"+i+">anti-"+i+"</option>";
+				});
+				document.getElementById("imun_sel_"+f).setAttribute("onChange", "imunis("+f+")");
+			}
+
+			for (var f=1; f<Game.numofpoke+1; f++){
+				if (!document.getElementById("del_"+f))
+					if(document.getElementById('con'+f))
+						document.getElementById('con'+f).appendChild(document.createElement("button")).id="del_"+f;
+				if (document.getElementById("del_"+f)){
+					document.getElementById('del_'+f).innerText = "-";
+					document.getElementById('del_'+f).setAttribute('onclick',"recalculate('del',"+Number(f-1)+")");
+					document.getElementById('del_'+f).setAttribute("style", "width:40px;height:40px");					
+				}
+			}
+
+			for (var f=1; f<Game.numofpoke+1; f++){
+				// if (!document.getElementById("imun_sel_"+f))
+				document.getElementById("confplus_"+f).appendChild(document.createElement('select')).id = "confplus_sel_"+f;
+				document.getElementById("confplus_sel_"+f).disabled = true;
+				document.getElementById("confplus_sel_"+f).innerHTML += "<option selected value=''>.</option>";
+				var q = 1;
+				["Trick or Treat", "Forest Curse"].forEach(function(t3){
+					document.getElementById("confplus_sel_"+f).innerHTML += "<option value=type3-"+q+">"+t3+"</option>";
+					q++;
+
+				})
+				document.getElementById("confplus_sel_"+f).setAttribute("onChange", "type3is("+f+")");
+				// console.log(document.getElementById("confplus_"+f))
+			}
+
+			if (!document.getElementById("table_3"))
+				// document.body.appendChild(document.createElement('table')).id = "table_3";
+				document.getElementById("folddiv").appendChild(document.createElement('table')).id = "table_3";
+			document.getElementById("table_3").setAttribute("border", '1');
+			document.getElementById("table_3").innerHTML = "";
+			document.getElementById("table_3").innerHTML += "Weakness: ";
+			
+			if (!document.getElementById("table_4"))
+				//document.body.appendChild(document.createElement('table')).appendChild(document.createElement('tr')).appendChild(document.createElement('td')).id = "table_4";
+				document.getElementById("folddiv").appendChild(document.createElement('table')).appendChild(document.createElement('tr')).appendChild(document.createElement('td')).id = "table_4";
+			reset("safe");
+
+			if (!document.getElementsByTagName("hr"))
+			document.body.appendChild(document.createElement('hr'));
+
+			if (!document.getElementById("table_1"))
+				//document.body.appendChild(document.createElement('table')).id="table_1";
+				document.getElementById("maindiv").appendChild(document.createElement('table')).id="table_1";
+			document.getElementById("table_1").innerHTML = "";
+
+			document.getElementById('table_1').setAttribute('border',0);
+			document.getElementById('table_1').setAttribute('class','table_1');
+
+			
+
+			document.getElementById('table_1').appendChild(document.createElement('tr')).id = "tr_0";
+			document.getElementById('tr_0').style.height = "10px";
+			document.getElementById('table_1').setAttribute('style','width:100px;');
+			document.getElementById('tr_0').innerHTML = "";
+				document.getElementById('tr_0').appendChild(document.createElement('td')).innerHTML="<table border=0 height=0><tr><td>_</td><td>_</td></tr><tr><td>_</td><td>_</td></tr></table>";
+			var b=1;
+			for (var a=1; a<Game.types.length+1; a++){
+				// document.getElementById('tr_0').appendChild(document.createElement('td')).outerHTML ="<td style='height:10px;'><img class='rotate270' src='http://jakerodelius.com/web/pokemon-calc/images/" + Game.types[a-1] + ".jpg' alt='"+Game.types[a-1]+"'>"+"</img></td>";
+				document.getElementById('tr_0').appendChild(document.createElement('td')).outerHTML = "<td><img class='smallicon' width=30 src='https://upload.wikimedia.org/wikipedia/commons/thumb/"+Game.wikitype[a-1]+"/Pok%C3%A9mon_"+Game.typesUp[a-1]+"_Type_Icon.svg/240px-Pok%C3%A9mon_"+Game.typesUp[a-1]+"_Type_Icon.svg.png'</img></td>";
+				// document.getElementById('tr_0').appendChild(document.createElement('td')).outerHTML="<td style='height:10px;'></td>";
+				document.getElementById('table_1').appendChild(document.createElement('tr')).id="tr_"+(b);
+				b++;
+			}
+
+			for (var a=1; a<Game.types.length+1; a++){
+				var namatr = "tr_"+Number(a);
+				// document.getElementById(namatr).appendChild(document.createElement('td')).innerHTML= "<img style='margin-top: 10px;margin-bottom: 10px;' src='http://jakerodelius.com/web/pokemon-calc/images/" + Game.types[a-1] + ".jpg' alt='"+Game.types[a-1]+"'>"+"</img>";
+				document.getElementById(namatr).appendChild(document.createElement('td')).innerHTML = "<img width=30 style='margin-left: 4px;' src='https://upload.wikimedia.org/wikipedia/commons/thumb/"+Game.wikitype[a-1]+"/Pok%C3%A9mon_"+Game.typesUp[a-1]+"_Type_Icon.svg/240px-Pok%C3%A9mon_"+Game.typesUp[a-1]+"_Type_Icon.svg.png'</img>";
+
+				for (var b=1; b<Game.types.length+1; b++){
+					document.getElementById(namatr).appendChild(document.createElement('td')).id="cell_"+a+"_"+b;
+					document.getElementById("cell_"+a+"_"+b).setAttribute("style","padding:0px;border-spacing:0px;")
+				}
+
+				document.getElementById(namatr).appendChild(document.createElement("td")).outerHTML = document.getElementById("tr_"+a).children[0].outerHTML;
+			}
+
+			document.getElementById("table_1").appendChild(document.createElement("tr")).id = "tr_99";
+			document.getElementById("tr_99").outerHTML = document.getElementById("tr_0").outerHTML;
+
+			for (var c=1; c<Game.types.length+1; c++){
+				for (var d=1; d<Game.types.length+1; d++){
+					if (d>=1 && c<=d ){
+						//
+						var cell = document.createElement("div");
+							cell.setAttribute("id", "cell"+c+d);
+							cell.setAttribute("class", "cell");
+							cell.setAttribute("onclick","selectcell('"+c+"_"+d+"')");
+							cell.innerText = 1;
+							document.getElementById("cell_"+c+"_"+d).appendChild(cell).id="tbl_"+c+"_"+d;
+					} else {
+					}					
+				}
+			}
+
+			if (!document.getElementsByTagName("hr"))
+			document.body.appendChild(document.createElement('hr'));
+		}
+
+		function showdb(){
+			if(document.getElementById("embed").style.visibility=="visible"){
+				// document.getElementById("embed").style.visibility = 'hidden';
+			} else {
+				// document.getElementById("embed").style.visibility = 'visible';
+			}
+			if(document.getElementById("embed").style.height=="0px"){
+				document.getElementById("embed").style.height = "1000px";
+			} else {
+				document.getElementById("embed").style.height = "0px";
+			}
+		}
+
+		function restrict(){
+			var state = event.srcElement.checked;
+			Game.restriction = state;
+			//console.log(state);
+			freemode(Game.restriction);
+			// if (state)
+
+
+			detailing();
+			recolorchosen(mon);
+		}
+
+		function add_right(){
+			var newid;
+
+			var numofpoke = document.getElementById("table_2").children[0].children.length - 1;
+			Game.numofpoke = numofpoke+1;
+			for (var i=0; i<=Game.numoconf+1; i++){
+				if (i==0) newid = "avail_"+(i+ Game.numofpoke);
+				else if (i==1) newid = "mon"+(i+Game.numofpoke-1)+"_t1";
+				else if (i==2) newid = "mon"+(i+Game.numofpoke-2)+"_t2";
+				else if (i==3) newid = "mon"+(i+Game.numofpoke-3)+"_imun";
+				else if (i==4) newid = "confplus_"+(i+Game.numofpoke-4);
+				else if (i==5) newid = "con"+(i+Game.numofpoke-5);
+				// document.getElementById("tr2_"+i).innerHTML += "<td id="+newid+"></td>";
+				document.getElementById("tr2_"+i).appendChild(document.createElement("td")).id = newid;
+			}
+			
+			document.getElementById("con"+Number(1+numofpoke)).innerHTML = "<button id='del_"+Number(1+numofpoke)+"' onclick='recalculate(`"+"del"+"`,"+numofpoke+")' style='width:40px;height:40px'>-</button>"
+			document.getElementById("mon"+(Game.numofpoke)+"_imun").innerHTML = "";
+			document.getElementById("mon"+(Game.numofpoke)+"_imun").appendChild(document.createElement('select')).id = "imun_sel_"+Game.numofpoke;
+			document.getElementById("confplus_"+(Game.numofpoke)).innerHTML = "a";
+			document.getElementById("confplus_"+(Game.numofpoke)).innerHTML = "<select id='confplus_sel_"+Game.numofpoke+"' disabled='' onchange='type3is("+Game.numofpoke+")'><option selected='' value=''>.</option><option value='type3-1'>Trick or Treat</option><option value='type3-2'>Forest Curse</option></select>";
+			document.getElementById("imun_sel_"+Game.numofpoke).disabled = true;
+			document.getElementById("imun_sel_"+Game.numofpoke).innerHTML += "<option selected value=''>.</option>";
+			document.getElementById("avail_"+(Number(Game.numofpoke))).style = "background-color: rgb(255, 255, 255);"
+			Game.listofimmun.forEach(function(i){
+				document.getElementById("imun_sel_"+Game.numofpoke).innerHTML += "<option value=anti-"+i+">anti-"+i+"</option>";
+			});
+			document.getElementById("imun_sel_"+Game.numofpoke).setAttribute("onChange", "imunis("+Game.numofpoke+")");
+
+			document.getElementById("monnum").innerText = String(mon.length + "/" + Number(document.getElementById("tr2_0").children.length-1));
+		}
+
+		function del_right(){
+			var numofpoke = document.getElementById("table_2").children[0].children.length - 1;
+			if(numofpoke<2) {
+				reset(0);
+			} else {
+				Game.numofpoke = numofpoke-1;
+				/*if (mon.length>0){
+					if (mon.length>Game.numofpoke){
+
+						if (document.getElementById("mon"+mon.length+"_t1")){
+							// console.log(document.getElementById("mon"+mon.length+"_t1").innerHTML);
+							if (document.getElementById("mon"+mon.length+"_t1").innerHTML == ""){
+								console.warn("empty");
+							} else {
+								// add_right();
+								console.error(Game.numofpoke, "mon",mon.length);
+							}
+							// console.log(document.getElementById("mon"+Game.numofpoke+"t1"));
+						}
+					}
+				}*/
+				
+
+				for (var i=0; i<=Game.numoconf+1; i++){
+					document.getElementById("tr2_"+i).removeChild(document.getElementById("tr2_"+i).children[document.getElementById("tr2_"+i).children.length-1]);
+				}
+				document.getElementById("monnum").innerText = String(mon.length + "/" + Number(document.getElementById("tr2_0").children.length-1));
+
+				if (Number(document.getElementById("tr2_0").children.length-1) < mon.length){
+					recalculate("del",mon.length-1);
+				}
+			}
+
+		}
+
+		function fold (){
+			var w = Number(document.getElementById("folddiv").style.height.split("px")[0]);
+			// console.log(w);
+			if (w>10){
+				document.getElementById("folddiv").style.height = "0px";
+			} else {
+				document.getElementById("folddiv").style.height = "350px";
+			}
+		}
+
+		function type3is(){
+			var i =event.srcElement.id[event.srcElement.id.length-1];
+			// console.log(i,"----");
+			var part1 = "<select id='confplus_sel_"+i+"' onchange='type3is()'><option value>.</option><option value='type3-1'>Trick or Treat</option><option value='type3-2'>Forest Curse</option></select>";
+			var t3,part2;
+			if (event.srcElement.value == "" || !event.srcElement.value){
+				// console.log("reset")
+			} else {
+
+			}
+			if (event.srcElement.value=="type3-1"){
+				t3 = "ghost";
+				part2 = "<br><img width='100' src='http://jakerodelius.com/web/pokemon-calc/images/"+t3+".jpg' alt='"+t3+"'>";
+				mon[i-1].type3 = t3;
+			} else if (event.srcElement.value=="type3-2"){
+				t3 = "grass";
+				part2 = "<br><img width='100' src='http://jakerodelius.com/web/pokemon-calc/images/"+t3+".jpg' alt='"+t3+"'>";
+				mon[i-1].type3 = t3;
+			} else {
+				// t3 = 0;
+				part2 = "";
+			}
+			document.getElementById("confplus_"+i).innerHTML = part1 + part2;
+			document.getElementById("confplus_"+i).style.width = "0px";
+			document.getElementById("confplus_sel_"+i).value = event.srcElement.value;
+			var t3arr = [];
+			Game.types.forEach(function(t){
+				if (!t3) t3arr[Game.types.indexOf(t)] = 1;
+				else t3arr[Game.types.indexOf(t)] = -99;//(Game.chart[Game.types.indexOf(t3)][Game.types.indexOf(t)]);				
+			});
+			mon[i-1].weakrecap.Matrices[2] = t3arr;
+			if (!t3 && mon[i-1].weakrecap.Matrices.length>2) {
+				// console.error(9)
+				mon[i-1].weakrecap.Matrices.pop();
+			}
+			weakrecap(mon[i-1]);
+			// console.log(mon[0])
+
+
+			recalculate("allweak");
+
+			subtotal(mon.length-1);
+
+			reset("safe");
+			redraw();
+
+			freemode();
+
+			avail_check(mon);
+			recolorchosen(mon);
+
+		}	
+		function detailing(){
+			if (Game.chartver=='1' || Game.title=="GSC") return false;
+
+			if(mon.length==0){
+				for (var col = 1; col<Game.max+1; col++){
+					for (var row = 1; row<Game.max+1; row++){
+						if (document.getElementById("tbl_"+row+"_"+col)){
+							document.getElementById("tbl_"+row+"_"+col).setAttribute("onclick", "selectcell(`"+row+"_"+col+"`)") ;
+							document.getElementById("tbl_"+row+"_"+col).style.textIndent = "100%";
+						}
+					}
+				}
+				return true;
+			} 
+
+			for (var col = 1; col<Game.max+1; col++){
+				for (var row = 1; row<Game.max+1; row++){
+					if (document.getElementById("tbl_"+row+"_"+col)){
+						if (document.getElementById("tbl_"+row+"_"+col).innerText == '0'){
+							if (!document.getElementById("che_res").checked){
+								document.getElementById("tbl_"+row+"_"+col).innerText = '0';
+								document.getElementById("tbl_"+row+"_"+col).style.backgroundColor = Data.Color.notok;
+								document.getElementById("tbl_"+row+"_"+col).style.textIndent = "100%";
+								document.getElementById("tbl_"+row+"_"+col).setAttribute("onclick", "selectcell(`"+col+"_"+row+"`)") ;
+							} else {
+								var temp10 = maketemp(Game.types[row-1],Game.types[col-1]);
+								weakrecap(temp10);
+								var numofsameweak = 0;
+								temp10.weakto.forEach(function(wt){
+									if (document.getElementById("che_res").checked){
+										/*if (temp10.weakto.length==1){
+											document.getElementById("tbl_"+row+"_"+col).style.backgroundColor = "#ffe933";
+										} else if (temp10.weakto.length==2){
+											document.getElementById("tbl_"+row+"_"+col).style.backgroundColor = "#ffd822";
+										} else if (temp10.weakto.length==3){
+											document.getElementById("tbl_"+row+"_"+col).style.backgroundColor = "#ffa711";
+										} else if (temp10.weakto.length==4){
+											document.getElementById("tbl_"+row+"_"+col).style.backgroundColor = "#ff9600";
+										} else if (temp10.weakto.length==5){
+											document.getElementById("tbl_"+row+"_"+col).style.backgroundColor = "#ff8500";
+										} else if (temp10.weakto.length==6){
+											document.getElementById("tbl_"+row+"_"+col).style.backgroundColor = "#ff7400";
+										} else {//if (temp10.weakto.length==7){
+											document.getElementById("tbl_"+row+"_"+col).style.backgroundColor = "#ff6300";
+										}*/
+									}
+									
+									// console.log(allweak);
+									if (allweak.indexOf(wt)>-1) {
+										numofsameweak++;
+										document.getElementById("tbl_"+row+"_"+col).style.textIndent = "0%";
+									}	
+
+									if (numofsameweak!=1){
+										document.getElementById("tbl_"+row+"_"+col).innerText = 0;
+										document.getElementById("tbl_"+row+"_"+col).style.textIndent = "100%";
+									} else {
+										// Game.listofimmun.forEach(function(im){
+										["ground"].forEach(function(im){
+											if (wt==im){
+												// document.getElementById("tbl_"+row+"_"+col).innerText = "*";
+												document.getElementById("tbl_"+row+"_"+col).style.backgroundColor = "#ffe933";
+												document.getElementById("tbl_"+row+"_"+col).setAttribute("onclick", "selectcell(`"+row+"_"+col+"`, `"+Game.types.indexOf(im)+"`)") ;
+											}
+										})
+									}
+								});
+							}
+						} //else document.getElementById("tbl_"+row+"_"+col).style.textIndent = "100%";
+					}
+				}
+			}
+			for (var col = 1; col<Game.max+1; col++){
+				for (var row = 1; row<Game.max+1; row++){
+					if (document.getElementById("tbl_"+row+"_"+col)){
+						if (document.getElementById("tbl_"+row+"_"+col).innerText=="0"){
+							document.getElementById("tbl_"+row+"_"+col).style.textIndent = "100%";
+						} else if (document.getElementById("tbl_"+row+"_"+col).innerText=="1"){
+							document.getElementById("tbl_"+row+"_"+col).style.textIndent = "100%";
+							// if (!document.getElementById("che_res").checked){
+						} 
+					}
+				}
+			}
+		}
+	</script>
+</head>
+<title>Pokemon Team Coverage Planner</title>
+<body onload="begin()">
+	<a href="#" onclick="fold()">[v]</a>
+	<b>PTCP  v1 | </b>
+	Chart version<select id="chartver" onchange="sel_charver()">
+		<option disabled></option>
+		<option value=1>Gen 1</option>
+		<option value=2>Gen 4</option>
+		<option value=2>Gen 2-5</option>
+		<option selected value=3>>=Gen 6</option>
+		<option disabled>--------</option>
+		<option value=2>RSE</option>
+		<option value=2>GSC</option>
+		<option value=2>DPPt</option>
+		<option value=2>HGSS</option>
+		<option selected value=2>B2W2</option>
+		<option value=3>SwSh</option>
+		<option value=3>BDSP</option>
+	</select>
+	|
+	<input id="che_res" checked onchange="restrict()" type="checkbox">Use Restrictions</input>
+	<!-- <br>	 -->
+	|
+	<button onclick="del_right()">( - )</button>
+	<button onclick="add_right()">(+)</button>
+	<button id="monnum">0</button>
+	<button value='reset' onclick="reset(0)">reset</button>
+	[Info]
+	<div id='database'><a href="#database" onclick='showdb()'>database</a></div>
+	<div id='embed' style="height:0px;overflow: hidden;">abc</div>
+</body>
+</html>
