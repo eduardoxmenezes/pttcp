@@ -10,8 +10,8 @@
   		{"title":"Gen 1", "base":1},
   		{"title":"Gen 4", "base":2},
   		{"title":"Gen 2-5", "base":2},  		
-  		{"title":">=Gen 6", "base":3},  		
-  		{"title":"Expr", "base":9, "selected":true}
+  		{"title":">=Gen 6", "base":3, "selected":true},  		
+  		{"title":"Expr", "base":9}
   	],
   	"b":[
   		{"title":"RSE", "base":2},
