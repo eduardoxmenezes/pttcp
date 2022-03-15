@@ -1796,7 +1796,7 @@
 
 				document.getElementById("divexp").innerHTML += "<br><br><div id='addtypewiz'></div>";
 
-				document.getElementById("addtypewiz").innerHTML += "Name (1 word) : <input id='newtypename' size=8 value='a'></input><br>"
+				document.getElementById("addtypewiz").innerHTML += "Name (1 word) : <input id='newtypename' size=8></input><br>"
 				document.getElementById("addtypewiz").innerHTML += "<img src='src/nuevotipo.png'><br>";
 				
 				/*document.getElementById("addtypewiz").innerHTML += "<b>When attacking</b>, it would be...<br>";
